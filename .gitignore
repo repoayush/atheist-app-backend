@@ -1,0 +1,5 @@
+# Node modules
+node_modules/
+
+# Environment variables (highly recommended for sensitive info)
+.env
