@@ -1,44 +1,78 @@
-// frontend/backend/server.js
+// dating_app/backend/server.js
 
+// Import necessary modules
 const express = require('express');
-const dotenv = require('dotenv'); // Import dotenv
-const connectDB = require('./db'); // Import the database connection
-const { router: authRoutes } = require('./auth_routes'); // Correctly import the router from auth_routes
-const userRoutes = require('./user_routes'); // Import user routes
-const requestRoutes = require('./request_routes'); // Import request routes
-const uploadRoutes = require('./upload_routes'); // Import the new upload routes
-const cors = require('cors'); // Import cors middleware
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const cors = require('cors');
+
+// Import route files
+const authRoutes = require('./auth_routes');
+const userRoutes = require('./user_routes');
+const requestRoutes = require('./request_routes');
+const chatRoutes = require('./chat_routes'); // <-- NEW: Import chat routes
+const uploadRoutes = require('./upload_routes'); // <-- NEW: Import upload routes
 
 // Load environment variables from .env file
 dotenv.config();
 
+// Initialize the Express application
 const app = express();
-
-// Connect to MongoDB
-connectDB();
 
 // Middleware
 app.use(cors()); // Enable CORS for all routes
-app.use(express.json()); // Body parser for JSON data
+app.use(express.json()); // Parse incoming JSON requests
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded data
 
-// Routes
-app.use('/api/auth', authRoutes); // Authentication routes (login, register)
-app.use('/api/users', userRoutes); // User-related routes (explore, profile, search, block, unmatch, delete)
-app.use('/api/requests', requestRoutes); // Dating request and match-related routes
-app.use('/api/upload', uploadRoutes); // Image upload routes
+// Define the MongoDB connection URI.
+// This will be read from your .env file.
+const MONGODB_URI = process.env.MONGODB_URI;
 
-// Basic route for testing server
+// Check if MONGODB_URI is defined
+if (!MONGODB_URI) {
+    console.error('MONGODB_URI is not defined in the .env file!');
+    console.error('Please ensure your .env file in the backend directory has MONGODB_URI="your_connection_string"');
+    process.exit(1); // Exit the process if URI is missing
+}
+
+// Connect to MongoDB
+mongoose.connect(MONGODB_URI, {
+    // These options (useNewUrlParser, useUnifiedTopology) are deprecated
+    // and have been removed as they are no longer necessary in Mongoose v6.x and above.
+    // They were causing the "Warning: useNewUrlParser is a deprecated option" messages.
+    // No other options are strictly required for a basic connection unless you have
+    // specific needs (e.g., replica set names, TLS/SSL certificates).
+})
+.then(() => {
+    console.log('MongoDB connected successfully!');
+})
+.catch((error) => {
+    console.error('MongoDB connection error:', error.message);
+    console.error('Possible causes:');
+    console.error('1. Incorrect username or password in your MONGODB_URI in .env.');
+    console.error('2. Your current IP address is not whitelisted in MongoDB Atlas Network Access.');
+    console.error('3. Typo in the database name or cluster name in the URI.');
+    // Optional: Exit process on failed connection if database is critical
+    // process.exit(1);
+});
+
+// Basic route for testing the server
 app.get('/', (req, res) => {
-    res.send('Dating App Backend API is running!');
+    res.send('Dating App Backend is running!');
 });
 
-// Error handling middleware (optional, but good practice)
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
+// Use API routes
+app.use('/api/auth', authRoutes.router); // Routes for user authentication (register, login)
+app.use('/api/users', userRoutes); // Routes for user profiles and search
+app.use('/api/requests', requestRoutes); // Routes for sending/managing requests and matches
+app.use('/api/chat', chatRoutes); // <-- NEW: Add chat routes
+app.use('/api/upload', uploadRoutes); // <-- NEW: Add upload routes
+
+// Define the port for the server to listen on
+const PORT = process.env.PORT || 5000; // Use environment variable or default to 5000
+
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Access it at http://localhost:${PORT}`);
 });
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
