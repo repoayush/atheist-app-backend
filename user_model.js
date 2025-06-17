@@ -1,4 +1,4 @@
-// frontend/backend/user_model.js
+// dating_app/backend/user_model.js
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs'); // For password hashing
@@ -72,6 +72,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Password is required'],
         minlength: [6, 'Password must be at least 6 characters long'],
+    },
+    // NEW FIELD: isVerified for special accounts
+    isVerified: {
+        type: Boolean,
+        default: false, // By default, users are not verified
     },
     // Date when the user account was created
     createdAt: {
