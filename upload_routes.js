@@ -20,8 +20,8 @@ cloudinary.config({
 const storage = multer.memoryStorage();
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // Keep 5MB limit or adjust as needed, or remove as per previous discussion
-    fileFilter: (req, file, cb) => { // <-- RE-ENABLED FILE FILTER
+    // limits: { fileSize: 5 * 1024 * 1024 }, // <-- REMOVED FILE SIZE LIMIT
+    fileFilter: (req, file, cb) => {
         console.log('File mimetype received by multer:', file.mimetype); // Log mimetype
         // Accept only image files
         if (file.mimetype.startsWith('image/')) {
