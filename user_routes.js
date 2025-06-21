@@ -79,6 +79,50 @@ router.get('/me', authMiddleware, async (req, res) => {
 });
 
 /*
+ * @route   GET /api/users/:userId
+ * @desc    Get any user's profile by ID
+ * @access  Private (requires token)
+ */
+router.get('/:userId', authMiddleware, async (req, res) => {
+    try {
+        const userIdToFetch = req.params.userId;
+        // Populate all necessary fields for the frontend to display full profile
+        const user = await User.findById(userIdToFetch).select('-password -__v');
+
+        // --- START DEBUGGING LOGS FOR FETCHING SINGLE USER PROFILE ---
+        console.log(`--- Fetching User Profile for ID: ${userIdToFetch} ---`);
+        if (user) {
+            console.log('Fetched User Data:');
+            console.log('  profileName:', user.profileName);
+            console.log('  username:', user.username);
+            console.log('  bio:', user.bio);
+            console.log('  profilePic:', user.profilePic);
+            console.log('  swipeImages count:', user.swipeImages ? user.swipeImages.length : 0);
+            if (user.swipeImages && user.swipeImages.length > 0) {
+                user.swipeImages.forEach((img, index) => console.log(`    Swipe Image ${index}:`, img));
+            }
+            console.log('  country:', user.country);
+            console.log('  instagramUsername:', user.instagramUsername);
+            console.log('  instagramProfileLink:', user.instagramProfileLink);
+        } else {
+            console.log('User not found in database.');
+        }
+        console.log('----------------------------------------------------');
+        // --- END DEBUGGING LOGS FOR FETCHING SINGLE USER PROFILE ---
+
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found.' });
+        }
+        res.json(user);
+    } catch (err) {
+        console.error('Error fetching user profile by ID:', err.message);
+        console.error(err.stack); // Log the full error stack
+        res.status(500).send('Server Error');
+    }
+});
+
+
+/*
  * @route   PUT /api/users/me
  * @desc    Update current logged-in user's profile
  * @access  Private
