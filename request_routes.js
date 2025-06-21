@@ -1,4 +1,4 @@
-// frontend/backend/request_routes.js
+// dating_app/backend/request_routes.js
 
 const express = require('express');
 const router = express.Router();
@@ -193,7 +193,8 @@ router.delete('/cancel/:requestId', authMiddleware, async (req, res) => {
 router.get('/sent', authMiddleware, async (req, res) => {
     try {
         const requests = await Request.find({ sender: req.user.id })
-            .populate('receiver', 'username profileName profilePic country') // Populate receiver details
+            // Updated populate to include all profile details for the receiver
+            .populate('receiver', 'username profileName profilePic country bio instagramUsername instagramProfileLink swipeImages')
             .sort({ createdAt: -1 }); // Sort by newest first
 
         res.json(requests);
