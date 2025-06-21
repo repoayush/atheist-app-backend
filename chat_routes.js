@@ -80,6 +80,7 @@ router.post('/send/:receiverId', authMiddleware, async (req, res) => {
             sender: senderId,
             receiver: receiverId,
             text: text.trim(),
+            isRead: false, // NEW: Mark message as unread by default for the receiver
         });
 
         await newMessage.save();
@@ -91,5 +92,62 @@ router.post('/send/:receiverId', authMiddleware, async (req, res) => {
         res.status(500).json({ msg: 'Server error sending message.' });
     }
 });
+
+/*
+ * @route   POST /api/chat/messages/:messageId/markAsRead
+ * @desc    Mark a specific message as read
+ * @access  Private (requires token)
+ */
+router.post('/messages/:messageId/markAsRead', authMiddleware, async (req, res) => {
+    try {
+        const currentUserId = req.user.id;
+        const messageId = req.params.messageId;
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ msg: 'Message not found.' });
+        }
+
+        // Ensure the current user is the receiver of this message and it's currently unread
+        if (message.receiver.toString() !== currentUserId || message.isRead === true) {
+            return res.status(400).json({ msg: 'You cannot mark this message as read.' });
+        }
+
+        message.isRead = true;
+        await message.save();
+
+        res.json({ msg: 'Message marked as read.', message });
+
+    } catch (err) {
+        console.error('Error marking message as read:', err.message);
+        res.status(500).json({ msg: 'Server error marking message as read.' });
+    }
+});
+
+/*
+ * @route   POST /api/chat/messages/markAllAsRead/:matchedUserId
+ * @desc    Mark all messages in a specific chat as read for the current user
+ * @access  Private (requires token)
+ */
+router.post('/messages/markAllAsRead/:matchedUserId', authMiddleware, async (req, res) => {
+    try {
+        const currentUserId = req.user.id;
+        const matchedUserId = req.params.matchedUserId;
+
+        // Update all unread messages where the current user is the receiver and the sender is the matched user
+        await Message.updateMany(
+            { receiver: currentUserId, sender: matchedUserId, isRead: false },
+            { $set: { isRead: true } }
+        );
+
+        res.json({ msg: 'All messages marked as read.' });
+
+    } catch (err) {
+        console.error('Error marking all messages as read:', err.message);
+        res.status(500).json({ msg: 'Server error marking all messages as read.' });
+    }
+});
+
 
 module.exports = router;
