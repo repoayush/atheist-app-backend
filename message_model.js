@@ -22,6 +22,11 @@ const MessageSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    // NEW: Field to track if the message has been read by the receiver
+    isRead: {
+        type: Boolean,
+        default: false, // Messages are unread by default when sent
+    },
 }, {
     timestamps: true, // Automatically add createdAt and updatedAt fields
 });
