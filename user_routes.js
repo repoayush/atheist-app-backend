@@ -20,17 +20,39 @@ router.get('/explore', authMiddleware, async (req, res) => {
             return res.status(404).json({ msg: 'Current user not found.' });
         }
 
-        // Fetch users excluding the current user.
+        // --- START DEBUGGING LOGS FOR EXPLORE USERS ---
+        console.log('--- Fetching Explore Users ---');
+        console.log('Current User ID:', currentUserId);
+        console.log('Current User Blocked Users (if any):', currentUser.blockedUsers); // Assuming a 'blockedUsers' array on User model
+        // --- END DEBUGGING LOGS FOR EXPLORE USERS ---
+
+        // Fetch users excluding the current user and any users they have blocked.
+        // Also, exclude users who have blocked the current user (requires checking 'blockedBy' field or similar logic if implemented).
+        // For simplicity, let's just exclude self for now and consider users not in matches/requests.
         // In a real app, you'd also filter out users the current user has already sent requests to,
         // received requests from (that are pending), or already matched with.
         const users = await User.find({
             _id: { $ne: currentUserId }, // Exclude the current user
+            // In a real app, you'd add more complex filtering here:
+            // _id: { $nin: currentUser.blockedUsers || [] }, // Exclude users blocked by current user
+            // Add logic to exclude already requested/matched users.
         }).select('-password -__v -lastActive'); // Exclude sensitive/unnecessary fields
+
+        // --- MORE DEBUGGING LOGS FOR EXPLORE USERS ---
+        console.log('Fetched Users Count for Explore:', users.length);
+        if (users.length > 0) {
+            console.log('First fetched user username:', users[0].username);
+        } else {
+            console.log('No users found after filtering.');
+        }
+        console.log('------------------------------------------');
+        // --- END DEBUGGING LOGS FOR EXPLORE USERS ---
 
         res.json(users);
 
     } catch (err) {
         console.error('Error fetching explore users:', err.message);
+        // Log the full error stack for better debugging
         console.error(err.stack);
         res.status(500).json({ msg: 'Server Error' });
     }
@@ -55,28 +77,6 @@ router.get('/me', authMiddleware, async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-
-/*
- * @route   GET /api/users/:userId
- * @desc    Get any user's profile by ID
- * @access  Private (requires token)
- */
-router.get('/:userId', authMiddleware, async (req, res) => {
-    try {
-        const userIdToFetch = req.params.userId;
-        // Populate all necessary fields for the frontend to display full profile
-        const user = await User.findById(userIdToFetch).select('-password -__v');
-
-        if (!user) {
-            return res.status(404).json({ msg: 'User not found.' });
-        }
-        res.json(user);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
 
 /*
  * @route   PUT /api/users/me
