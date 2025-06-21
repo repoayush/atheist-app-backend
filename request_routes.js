@@ -93,14 +93,14 @@ router.post('/accept/:requestId', authMiddleware, async (req, res) => {
         request.acceptedAt = new Date(); // Record acceptance time
         await request.save();
 
-        // Optionally, update both users' `matches` array
-        // (You might decide to track matches via the 'accepted' status in Request model,
-        // or have a separate 'Match' collection. For now, Request status suffices)
+        // Optional: Ensure the matched user's profile is sent back for notification/frontend update
+        const matchedUser = await User.findById(request.sender).select('-password -__v');
+
 
         res.json({
             msg: 'Dating request accepted! It\'s a match!',
             request,
-            matchedWith: request.sender // Information about who they matched with
+            matchedWith: matchedUser
         });
 
     } catch (err) {
@@ -213,7 +213,9 @@ router.get('/sent', authMiddleware, async (req, res) => {
 router.get('/received', authMiddleware, async (req, res) => {
     try {
         const requests = await Request.find({ receiver: req.user.id })
-            .populate('sender', 'username profileName profilePic country') // Populate sender details
+            // POPULATE ALL NECESSARY USER FIELDS FOR THE SENDER
+            // This line was changed to include bio, instagramUsername, instagramProfileLink, and swipeImages
+            .populate('sender', 'username profileName profilePic country bio instagramUsername instagramProfileLink swipeImages')
             .sort({ createdAt: -1 }); // Sort by newest first
 
         res.json(requests);
@@ -265,10 +267,9 @@ router.get('/matches', authMiddleware, async (req, res) => {
         });
 
         res.json(allMatches);
-
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Error fetching matches:', err.message);
+        res.status(500).json({ msg: 'Server error fetching matches.' });
     }
 });
 
